@@ -1,6 +1,6 @@
 @extends("temp")
 @section("title")
-群類招生試算平台
+招生群(類)別試算平台
 @stop
 
 {{-- ✅ 菜單連結已由 MenuComposer 統一處理，無需在此定義 --}}

@@ -16,6 +16,27 @@
     </div>
 </div>
 
+    {{-- 招生管道選擇 --}}
+    <div class="card mb-4">
+        <div class="card-body">
+            <label><strong>選擇招生管道</strong></label>
+            <div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio"
+                           wire:model="admission_type"
+                           id="type_joint" value="聯合登記分發">
+                    <label class="form-check-label" for="type_joint">聯合登記分發</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio"
+                           wire:model="admission_type"
+                           id="type_sel" value="甄選入學">
+                    <label class="form-check-label" for="type_sel">甄選入學</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- 系科選擇 --}}
     <div class="card mb-4">
         <div class="card-body">
@@ -37,7 +58,7 @@
 @endphp
 
 <h5 style="margin-top: 10px">
-    <strong>{{ $baseYear }}</strong> 年度該系科招收群類別
+    <strong>{{ $baseYear }}</strong> 年度該系科招收群(類)別
 
     @if($baselineCount > 0 && $baselineCount < 3)
         <span class="badge badge-warning ml-2">
@@ -66,6 +87,14 @@
             </span>
         @endforeach
     </div>
+
+    {{-- 第21群特殊備註 --}}
+    @if($group21Note)
+        <div class="alert alert-warning py-1 px-2 mb-1 mt-2" role="alert"
+             style="font-size: 0.875rem;">
+            <i class="fas fa-info-circle mr-1"></i>{{ $group21Note }}
+        </div>
+    @endif
 @endif
 
 
@@ -75,7 +104,7 @@
 {{-- Scenario --}}
 <div class="card mb-4">
     <div class="card-body">
-        <h5>挑選新群類別試算（最多 3 群）</h5>
+        <h5>挑選新群(類)別試算（最多 3 群）</h5>
         <div class="row">
             @foreach($groups as $group)
                 @php
@@ -90,7 +119,7 @@
                         <input type="checkbox"
                                wire:model="scenarioGroups"
                                value="{{ $group->group_id }}"
-                               {{ empty($selectedDepartment) ? 'disabled' : '' }}>
+                               {{ (empty($selectedDepartment) || $disableNew) ? 'disabled' : '' }}>
                         {{ $group->group_id }} {{ $group->group_name }}
                     </label>
                 </div>
@@ -111,7 +140,7 @@
         @else
             @foreach($groupComparisonTables as $table)
                 <div class="border rounded p-3 mb-4">
-                    <h6 class="font-weight-bold mb-3">第 {{ $table['index'] }} 群別</h6>
+                    <h6 class="font-weight-bold mb-3">第 {{ $table['index'] }} 群(類)別</h6>
 
                     <table class="table table-sm table-bordered text-center mb-0">
                         <thead class="thead-light">
@@ -119,7 +148,7 @@
                                 <th style="width:120px;">年度</th>
 
                                 <th style="width:40%;" class="text-center">
-                                        原群類別
+                                        原群(類)別
                                     <div class="mt-1">
                                             @if($table['baseline_group'] !== '—')
                                         <span class="badge badge-secondary">
@@ -133,7 +162,7 @@
 
 
                                 <th style="width:40%;">
-                                    新群類別
+                                    新群(類)別
                                     @if($table['scenario_group'] !== '—')
                                         <div class="mt-1">
                                             <span class="badge badge-info">
@@ -187,7 +216,7 @@
 {{-- Comparison --}}
 <div class="card mb-4">
     <div class="card-body">
-        <h6 class="font-weight-bold">招收群類別總人數比較</h6>
+        <h6 class="font-weight-bold">招收群(類)別總人數比較</h6>
 
         @if($warning)
             <div class="alert alert-warning">{{ $warning }}</div>
@@ -197,8 +226,8 @@
             <thead class="thead-light">
                 <tr>
                     <th>年度</th>
-                    <th class="text-right">原群類別</th>
-                    <th class="text-right">新群類別</th>
+                    <th class="text-right">原群(類)別</th>
+                    <th class="text-right">新群(類)別</th>
                     <th class="text-right">差值(新-原)</th>
                 </tr>
             </thead>
@@ -238,7 +267,7 @@
 
 
         <div class="border-top pt-3 mt-4" wire:ignore>
-    <h6 class="text-muted mb-2">招收群類別報考人數趨勢比較</h6>
+    <h6 class="text-muted mb-2">招收群(類)別報考人數趨勢比較</h6>
 
     <div style="height: 280px;">
         <canvas id="comparisonChart"></canvas>

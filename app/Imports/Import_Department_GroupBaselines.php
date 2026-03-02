@@ -24,6 +24,7 @@ class Import_Department_GroupBaselines implements ToModel,WithHeadingRow,WithBat
             'group_id'=>$row['group_id'],
             'group_name'=>$row['group_name'],
             'DEP_SIMPLE'=>$row['DEP_SIMPLE'],
+            'admission_type'=>$row['admission_type']
             
              
 

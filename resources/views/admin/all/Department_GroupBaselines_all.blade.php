@@ -32,6 +32,7 @@ style="margin-top:50px;"
                <th>group_id</th>
                <th>group_name</th>
                <th>DEP_SIMPLE</th>
+               <th>admission_type</th>
            
              
 
@@ -44,7 +45,7 @@ style="margin-top:50px;"
                     <td>{{$list->group_id}}</td>
                     <td>{{$list->group_name}}</td>
                     <td>{{$list->DEP_SIMPLE}}</td>
-                   
+                    <td>{{$list->admission_type}}</td>
                  
 
 

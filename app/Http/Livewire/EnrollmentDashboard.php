@@ -12,6 +12,8 @@ class EnrollmentDashboard extends Component
      * ========================= */
     public $departments = [];
     public $selectedDepartment = null;
+    public string $admission_type = '聯合登記分發';
+    public ?string $group21Note = null;
 
     public $baseYear;
     public $predictionYears = [];
@@ -48,7 +50,8 @@ class EnrollmentDashboard extends Component
      * ========================= */
     public function mount()
     {
-        $this->baseYear = DB::table('College_System')->max('AD_YEAR');
+        // 以 group_predictions 最小預測年度推算基準年
+        $this->baseYear = (int) DB::table('group_predictions')->min('year') - 1;
 
         $this->predictionYears = [
             $this->baseYear + 1,
@@ -56,14 +59,7 @@ class EnrollmentDashboard extends Component
             $this->baseYear + 3,
         ];
 
-        $this->departments = DB::table('College_System')
-            ->where('SYSTEM_TYPE', '日間部')
-            ->where('SCH_SYS', '學士班(日間)')
-            ->where('AD_YEAR', $this->baseYear)
-            ->groupBy('DEP_SIMPLE')
-            ->orderBy('DEP_SIMPLE')
-            ->pluck('DEP_SIMPLE')
-            ->toArray();
+        $this->departments = $this->loadDepartments();
     }
 
     /* =========================
@@ -77,6 +73,30 @@ class EnrollmentDashboard extends Component
         }
 
         $this->loadBaseline();
+    }
+
+    /* =========================
+     * 招生管道切換
+     * ========================= */
+    public function updatedAdmissionType()
+    {
+        $this->selectedDepartment = null;
+        $this->group21Note       = null;
+        $this->departments       = $this->loadDepartments();
+        $this->resetAll();
+    }
+
+    /* =========================
+     * 系科清單（依管道）
+     * ========================= */
+    private function loadDepartments(): array
+    {
+        return DB::table('department_group_baselines')
+            ->where('admission_type', $this->admission_type)
+            ->distinct()
+            ->orderBy('DEP_SIMPLE')
+            ->pluck('DEP_SIMPLE')
+            ->toArray();
     }
 
     protected function resetAll(): void
@@ -110,6 +130,7 @@ class EnrollmentDashboard extends Component
     {
         $rows = DB::table('department_group_baselines')
             ->where('DEP_SIMPLE', $this->selectedDepartment)
+            ->where('admission_type', $this->admission_type)
             ->get(['group_id', 'group_name']);
 
         $this->baselinePicked = $rows
@@ -124,6 +145,14 @@ class EnrollmentDashboard extends Component
             return;
         }
 
+        // 第21群（資管類）特殊說明：此群係從第09群商管群獨立劃分，預測資料以第09群計算
+        // 使用 (int) 轉型，相容 DB 欄位為整數 21、字串 '21' 或 '021' 等各種格式
+        $has21 = collect($this->baselinePicked)
+            ->contains(fn($g) => (int)$g['group_id'] === 21);
+        $this->group21Note = $has21
+            ? '※ 第21群「資管類」係從第09群「商管群」報考人數中獨立劃分之名額，目前預測資料以第09群計算，僅供參考。'
+            : null;
+
         $ids = array_column($this->baselinePicked, 'group_id');
 
         $this->baselineYearly = $this->sumByYear($ids);
@@ -133,8 +162,11 @@ class EnrollmentDashboard extends Component
         // 初始化 slot（關鍵）
         $this->initBaselineScenarioSlots();
 
-        // 預設 scenario = baseline
-        $this->scenarioGroups = $ids;
+        // 預設 scenario = baseline，但排除第21群（不在 group_predictions / checkbox 選單中）
+        // 使用 (int) 轉型確保相容各種 DB 儲存格式
+        $this->scenarioGroups = array_values(
+            array_filter($ids, fn($id) => (int)$id !== 21)
+        );
 
         $this->recalculateScenario();
     }
@@ -152,7 +184,10 @@ class EnrollmentDashboard extends Component
             if ($slot > 3) break;
 
             $this->baselineSlots[$slot] = $b;
-            $this->scenarioSlots[$slot] = $b; // 初始 = baseline
+            // 第21群不預設帶入 scenario：因 group_predictions 無此群資料且 checkbox 選單上沒有此選項，
+            // 讓使用者自行在該 slot 選擇替代群別；baseline 欄位仍保留以供比較表顯示
+            // 使用 (int) 轉型相容各種 DB 格式（整數 21、'21'、'021' 等）
+            $this->scenarioSlots[$slot] = ((int)$b['group_id'] === 21) ? null : $b;
             $slot++;
         }
 
