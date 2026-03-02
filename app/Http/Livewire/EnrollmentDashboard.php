@@ -149,24 +149,69 @@ class EnrollmentDashboard extends Component
         // 使用 (int) 轉型，相容 DB 欄位為整數 21、字串 '21' 或 '021' 等各種格式
         $has21 = collect($this->baselinePicked)
             ->contains(fn($g) => (int)$g['group_id'] === 21);
-        $this->group21Note = $has21
-            ? '※ 第21群「資管類」係從第09群「商管群」報考人數中獨立劃分之名額，目前預測資料以第09群計算，僅供參考。'
-            : null;
+
+        if ($has21) {
+            $g09InBaseline = collect($this->baselinePicked)
+                ->contains(fn($g) => (int)$g['group_id'] === 9);
+
+            $this->group21Note = $g09InBaseline
+                // 兩者都在 baseline：說明 21 資料引用 09，但 scenario 手動選擇
+                ? '※ 第21群「資管類」係從第09群「商管群」報考人數中獨立劃分之名額，兩群預測資料均以第09群計算。新群類別選單中第21群對應欄位請自行選擇替代群別。'
+                // 只有 21（一般情況）：說明已自動對照 09
+                : '※ 第21群「資管類」係從第09群「商管群」報考人數中獨立劃分之名額，預測資料以第09群計算；系統已自動將第09群列為對照群別，如需可手動調整。';
+        } else {
+            $this->group21Note = null;
+        }
 
         $ids = array_column($this->baselinePicked, 'group_id');
 
-        $this->baselineYearly = $this->sumByYear($ids);
-        $this->baselineTotal  = array_sum($this->baselineYearly);
-        $this->baselinePerGroupYear = $this->fetchPerGroupYear($ids);
+        // ── 資料查詢層：第21群在 group_predictions 無資料，改以第09群資料替代 ──
+        // queryIds：將 21 替換為 09 後去重，避免 baseline 同時含 09+21 時重複查詢
+        $group09Meta = $has21 ? $this->fetchGroup09Meta() : null;
+        $g09id       = $group09Meta ? $group09Meta['group_id'] : null;
 
-        // 初始化 slot（關鍵）
+        $queryIds = $has21
+            ? array_unique(array_map(fn($id) => ((int)$id === 21) ? $g09id : $id, $ids))
+            : $ids;
+
+        $this->baselineYearly       = $this->sumByYear($queryIds);
+        $this->baselineTotal        = array_sum($this->baselineYearly);
+        $this->baselinePerGroupYear = $this->fetchPerGroupYear($queryIds);
+
+        // 將 09 的預測資料複製到 '21' 鍵，讓 buildGroupComparisonTables 用 baseline group_id='21' 查得到
+        if ($has21 && $g09id && isset($this->baselinePerGroupYear[$g09id])) {
+            $this->baselinePerGroupYear['21'] = $this->baselinePerGroupYear[$g09id];
+        }
+
+        // ── 初始化 slot（關鍵） ──
         $this->initBaselineScenarioSlots();
 
         // 預設 scenario = baseline，但排除第21群（不在 group_predictions / checkbox 選單中）
-        // 使用 (int) 轉型確保相容各種 DB 儲存格式
         $this->scenarioGroups = array_values(
             array_filter($ids, fn($id) => (int)$id !== 21)
         );
+
+        // 若過往有第21群，且 09 群「不在」此系科的 baseline 中，才自動預填 09
+        // （若 baseline 已有 09，則 09 已佔一個 slot，不再重複填入，留空讓使用者自選）
+        if ($has21) {
+            $group09AlreadyInBaseline = collect($this->baselinePicked)
+                ->contains(fn($g) => (int)$g['group_id'] === 9);
+
+            if (!$group09AlreadyInBaseline) {
+                // 找到 scenario 中 group 21 對應的空 slot，填入 group 09
+                foreach ($this->baselineSlots as $slot => $b) {
+                    if ($b && (int)$b['group_id'] === 21) {
+                        $this->scenarioSlots[$slot] = $group09Meta;
+                        break;
+                    }
+                }
+                // 將 09 加入勾選清單（嚴格比對避免重複）
+                if (!in_array($g09id, $this->scenarioGroups, true)) {
+                    $this->scenarioGroups[] = $g09id;
+                }
+            }
+            // 若 baseline 已有 09：21 的 scenario slot 維持 null，讓使用者自行選擇
+        }
 
         $this->recalculateScenario();
     }
@@ -283,6 +328,21 @@ class EnrollmentDashboard extends Component
         return [
             'group_id'   => (string)$gid,
             'group_name' => $row->group_name ?? '—',
+        ];
+    }
+
+    /**
+     * 專用於查找第09群（商管群）：以 CAST 相容整數/字串各種 DB 儲存格式
+     */
+    private function fetchGroup09Meta(): array
+    {
+        $row = DB::table('group_predictions')
+            ->whereRaw('CAST(group_id AS INT) = 9')
+            ->first(['group_id', 'group_name']);
+
+        return [
+            'group_id'   => $row ? (string)$row->group_id : '09',
+            'group_name' => $row ? $row->group_name : '商管群',
         ];
     }
 
