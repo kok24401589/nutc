@@ -293,7 +293,7 @@
         </button>
              <div class="collapse" id="enrollment-dashboard">
               <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small">
-                <li style="margin-left:18px;"><a href="{{ url('EnrollmentDashboard') }}" class="link-dark" style="font-size:14px;">群類招生試算平台</a></li>
+                <li style="margin-left:18px;"><a href="{{ url('EnrollmentDashboard') }}" class="link-dark" style="font-size:14px;">招生群(類)別試算平台</a></li>
               </ul>
           </div>
          </li>

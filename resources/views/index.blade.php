@@ -190,7 +190,7 @@
             </div>
             <div style="margin-top:20px;">
                 <a href="EnrollmentDashboard" class="btn btn-success" role="button" style="border-radius: 80px;">
-                    <h2 style="color:white;padding-right:15px;padding-left:15px;">群類招生分析</h2>
+                    <h2 style="color:white;padding-right:15px;padding-left:15px;">群(類)別招生分析</h2>
                 </a>
             </div>
         </div>

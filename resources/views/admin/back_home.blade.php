@@ -207,7 +207,7 @@
       <div class="card-header fw-bold">
         <div class="row">
           <div class="col text-left" style="font-size: 2.5vw;">{{$schoolname}}</div>
-          <div class="col col-lg-2">
+          {{-- <div class="col col-lg-2">
             <form method="post">
             {{ csrf_field() }}
             <button class="btn btn-primary dropdown-toggle" style="float: right;" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -217,11 +217,11 @@
               {{-- @foreach($schoolnamelist as $schname)
                <input type="submit" name="save[{{ $schname->School_Code }}]" class="btn dropdown-item" value="{{$schname->School_Name}}">
               @endforeach --}}
-              <a class="dropdown-item" href="/nutc/public/back_home">國立臺中科技大學</a>
+             {{-- <a class="dropdown-item" href="/nutc/public/back_home">國立臺中科技大學</a>
               <a class="dropdown-item" href="/ncut/public/back_home">國立勤益科技大學</a>
             </div>
             </form>
-          </div>
+          </div> --}}
         </div>
       </div>
     </div>
